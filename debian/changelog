@@ -1,3 +1,9 @@
+uftp (3.4.3-1~kwick.1) stable; urgency=low
+
+  * fixed init skript to start uftpd with the right uid
+
+ -- Andrei Pascha <apa@dev1.nbg1.kwick.de>  Tue, 07 Jun 2011 10:42:50 +0200
+
 uftp (3.4.3-1~kwick.0) stable; urgency=low
 
   * Initial release. 

@@ -1,3 +1,5 @@
 # en/disable uftp service
 ENABLED=no
-DAEMON_ARGS=
+PIDFILE=/var/run/uftpd.pid
+DAEMON_USER=root
+DAEMON_ARGS="-L /var/log/uftpd.log -B 8388608 -P $PIDFILE"
