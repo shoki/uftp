@@ -1,0 +1,3 @@
+# en/disable uftp service
+ENABLED=no
+DAEMON_ARGS=

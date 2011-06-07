@@ -1,0 +1,147 @@
+.TH uftpd 1 "23 April 2011" "UFTP 3.4.3"
+.SH NAME
+uftpd - Encrypted UDP based ftp with multicast - client daemon
+.SH SYNOPSIS
+uftpd [ -d ] [ -n ] [ -p port ] [ -U UID ] [ -B buf_size ]
+    [ -E ] [ -Q dscp ] [ -T temp_dir ] [ -D dest_dir ]
+    [ -L logfile ] [ -P pidfile ]
+    [ -S serverlist_file ] [ -R proxy[/fingerprint] ]
+    [ -k keyfile[,keyfile...] ] [ -K new_key_length ]
+    [ -y ] [ -I interface[,interface...] ]
+    [ -M pub_mcast_addr[,pub_mcast_addr...] ]
+.SH DESCRIPTON
+.P
+uftpd is the client daemon of the UFTP suite.  It listens on one or more multicast addresses to receive files from servers.
+
+This version of the client supports servers running UFTP 3.x and UFTP 2.10.x.
+
+.SH OPTIONS
+.P
+The following options are supported:
+.TP
+.B \-d
+Enable debug mode.  The process will run in the foreground and all output will go to stderr.  If specified, the -L option is ignored.
+.TP
+.B \-n
+Prevents name lookups of the server.  Useful if name resolution takes a long time and delays sending of the registration message.
+.TP
+.B \-p port
+The UDP port number to listen on.  Default is 1044.
+.TP
+.B \-U UID
+The unique ID for this client.  May be specified either as a 6 digit hexadecimal number (0xnnnnnn) or as an IP address of the form 0.n.n.n.
+.TP
+.B \-B buf_size
+The size in bytes of the UDP receive buffer to use.  Valid values are 65536-104857600 (64KB-100MB).  Defaults to 262144.
+.TP
+.B \-E
+Only allow incoming sessions if encryption is enabled.  Default is to allow both encrypted and unencrypted sessions.
+.TP
+.B \-Q dscp
+Specifies the Differentiated Services Code Point (DSCP), formerly Type of Service (TOS), in the IP header for all outgoing packets.  Valid values are 0-63 and may be specified in either decimal or hexadecimal.  Default is 0.
+
+On Windows XP systems, the OS doesn\(aqt allow this parameter to be changed by default.  To change this, add/modify the following DWORD registry value, set to 0, and reboot:
+
+HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\DisableUserTOSSetting
+
+Not currently supported on Windows Vista or later.
+.TP
+.B \-T temp_dir
+Temp directory in which files are received, then moved to dest_dir when complete.  If omitted, files are received directly into dest_dir.
+
+The -T option MUST be specified to allow the client to save the state of failed file transfers that can be resumed later.
+
+IMPORTANT: When full directories are received, the entire directory is moved at once to the destination directory, removing any existing file/directory.  This means that if an existing directory in dest_dir is the same name as a directory received into temp_dir, all files under the existing directory are deleted. 
+.TP
+.B \-D dest_dir
+Destination directory for all received files.  Default is /tmp for UNIX-like systems, C:\\temp for Windows.
+.TP
+.B \-L logfile
+Specifies the log file.  Default is /tmp/uftpd.log for UNIX-like systems systems, C:\\uftpd_log.txt for Windows.
+.TP
+.B \-P pidfile
+The pidfile to write the daemon\(aqs pid to on startup.  Default is no pidfile.
+.TP
+.B \-S serverlist_file
+A file containing a list of servers the client will allow to send files to it.  The file should contain the name/IP of a server optionally followed by the server\(aqs public key fingerprint, with one on each line.  If a key fingerprint is given, the key specified by the server must match the fingerprint.  If your system supports source specific multicast (SSM), the client will subscribe to all public and private multicast addresses using SSM for all servers listed.
+
+When this option is specified, the public address given by -M must be a valid SSM address.  Any ANNOUNCE that specifies a private IP that is not a valid SSM address will be rejected.  Valid SSM addresses are in the range 232.0.0.0-232.255.255.255.
+
+.nf
+Example contents:
+192.168.1.101 66:1E:C9:1D:FC:99:DB:60:B0:1A:F0:8F:CA:F4:28:27:A6:BE:94:BC
+192.168.1.201
+.fi
+
+When expecting to receive from a server that is behind a proxy, the file should list the name/IP and fingerprint of the client proxy instead of the server.  The proxy can authenticate the server.
+.TP
+.B \-R proxy[/fingerprint]
+Specifies the name/IP of the response proxy that all responses are forwarded to.  If fingerprint is given, it specifies the proxy\(aqs public key fingerprint.  Upon startup, the client will query the proxy for its public key, retrying every 5 seconds until it gets a successful response.  The client cannot accept an encrypted file transfer from a server until it gets the proxy\(aqs key.
+.TP
+.B \-k keyfile[,keyfile...]
+.TP
+.B \-K new_key_length
+These two options are used to read and/or write the client\(aqs RSA private key.
+
+If neither -k nor -K are specified, an RSA private key 512 bytes in length is generated.
+
+If -k is specified but not -K, the RSA private keys are read from each keyfile.
+
+If -k is not specified but -K is, an RSA private key new_key_length bytes in length is generated.
+
+If both -k and -K are specified, an RSA private key new_key_length bytes in length is generated and stored in the first keyfile, and subsequent key files are ignored.
+
+The definition of keyfile is dependent on the crypto library UFTP is compiled to use.
+
+On Windows systems using the native crypto library (CryptoAPI), all RSA private keys must be stored in a key container (technically only keys used to sign data, but for UFTP\(aqs purposes this is the case).  Key containers are internal to Windows, and each user (and the system) has its own set of key containers.  In this case, keyfile is actually the name of the key container.  When -k is not specified, the generated key is stored in a default key container.  Note that if more than one server, client, and/or proxy use this default key container on the same machine, they will interfere with each other and the results are undefined.
+
+All other systems use OpenSSL for the crypto library (although under Windows UFTP can be also be built to use it).  In this case, keyfile specifies a file name where the RSA private key is stored unencrypted in PEM format (the OS is expected to protect this file).  When both -k and -K are specified, the file is only written to if it does not currently exist.  If the file does exist, an error message will be returned and the client will exit.  When -k is not specified, the generated key is not persisted.  Unlike CryptoAPI, servers, clients, and proxies will not step on each other in this case.  These PEM files may also be manipulated via the openssl(1) command line tool.
+
+Keys can also be generated and viewed via the uftp_keymgt(1) utility.
+.TP
+.B \-m
+For Windows systems using CryptoAPI, private keys are normally stored in the key container of the running user.  Specifying this option stores keys in the system key container.  Useful when running as a service.  On non-Windows systems, this option has no effect.
+.TP
+.B \-I interface[,interface...]
+Lists one or more interfaces to listen to multicast traffic on.  Interfaces can be specified either by interface name, by hostname, or by IP.  When receiving a closed group membership request, the client will participate if any of these interfaces matches an IP in the announcement.  When receiving an open group membership request, the first interface listed is the one the client will report back to the server.  This may not necessarily be the interface that the ANNOUNCE was received on.  The default is to listen on all active non-loopback interfaces.  NOTE: Since Windows doesn\(aqt have named interfaces (not in the sense that UNIX-like systems do), only hostnames or IP addresses are accepted on Windows.
+.TP
+.B \-M pub_multicast_addr[,pub_multicast_addr...]
+The list of public multicast addresses to listen on.  Default is 230.4.4.1
+.SH EXAMPLES
+.P
+Starting with the default options:
+
+.RS 5
+uftpd
+.RE
+
+The client runs as a daemon and listens for announcements on UDP port 1044 on multicast address 230.4.4.1 on all non-loopback network interfaces. Incoming files are received directly into /tmp (C:\\temp on Windows).  A 512-bit RSA key is generated to handle encrypted sessions.
+
+Suppose you want an external process to handle incoming files in /tmp/dest.  Since you don\(aqt want to pick up incomplete files, you might want them to be received into /tmp/receiving then moved to /tmp/dest when done.  Then call the client like this:
+
+.RS 5
+uftpd -D /tmp/dest -T /tmp/receiving
+.RE
+
+If the client expects to receive from different servers, one sending on 230.4.4.1 and one sending on 230.4.4.2:
+
+.RS 5
+uftpd -M 230.4.4.1,230.4.4.2
+.RE
+
+To handle incoming encrypted sessions with differing RSA key sizes:
+
+.RS 5
+uftpd -k file_for_1024_bit_key,file_for_2048_bit_key
+.RE
+
+If incoming packets aren\(aqt being read quickly enough, and you want to increase the UDP receive buffer size to 2 MB:
+
+.RS 5
+uftpd -B 2097152
+.RE
+
+.SH SEE ALSO
+uftp(1), uftpproxyd(1), uftp_keymgt(1)
+.SH NOTES
+The latest version of UFTP can be found at http://www.tcnj.edu/~bush/uftp.html.  UFTP is covered by the GNU General Public License.  Commercial licenses and support are available from Dennis Bush (bush@tcnj.edu).

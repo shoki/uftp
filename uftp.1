@@ -1,0 +1,248 @@
+.TH uftp 1 "23 April 2011" "UFTP 3.4.3"
+.SH NAME
+uftp - Encrypted UDP based ftp with multicast - server
+.SH SYNOPSIS
+uftp [ -U ] [ -R txrate ] [ -W txweight ] [ -m min_time ]
+    [ -n ] [ -L logfile ] [ -B udp_buf_size ] [ -Y keytype ]
+    [ -h hashtype ] [ -w sigtype ] [ -c ] [ -k key_file ]
+    [ -K new_key_length ] [ -l ] [ -T ] [ -A announce_time ]
+    [ -S status_time ] [ -a announce_interval ]
+    [ -s status_interval ] [ -r register_interval ]
+    [ -d done_interval ] [ -b mtu ] [ -t ttl ] [ -Q dscp ]
+    [ -I interface ] [ -p port ] [ -j proxylist_file ]
+    [ -q ] [ -f ] [ -H host[,host...] | -H @hostlist_file
+    | -F restart_file ] [ -X exclude_file ] [ -y ]
+    [ -M pub_multicast_addr ] [ -P priv_multicast_addr ]
+    [ -D dest_name ] { -i list_file | file [ file... ] }
+.SH DESCRIPTON
+.P
+uftp is the server process of the UFTP suite.  It sends one or more files to one or more receivers via multicast with optional encryption.
+
+.SH OPTIONS
+.P
+The following options are supported:
+.TP
+.B \-U
+Send in unicast mode to a single host.  This requires the -H option with a single host specified.  The -t, -M, and -P options are ignored as they are all related to multicast.
+.TP
+.B \-R txrate
+The transmission speed in Kbps.  Specifying -1 for this value results in data being sent as fast as the network interface will allow.  Using a value of -1 is recommended only if the network path between the server and all clients is as fast as the server\(aqs local interface, and works best in a gigabit environment.   Default is 1000 Kbps.
+.TP
+.B \-W txweight
+Sets the maximum file transfer time, expressed as a percentage of the optimal time.  If a value of -1 is given for the -R option, a speed of 100Mpbs is used for the purpose of calculating the max time.  Valid values are 110%-10000%.  Default value is 300%.
+.TP
+.B \-m min_time
+Specifies the minimum file transfer time.  This value takes precedence over the maximum time, if it is greater.  Valid values are 0-3600 seconds.  Default value is 10 seconds.
+.TP
+.B \-n
+Prevents name lookups of clients and proxies under open group membership. Useful if name resolution takes a long time and delays receiving of the registration messages.  Names are still looked up under closed group membership, as this happens before any data starts moving.
+.TP
+.B \-L logfile
+Specifies the log file.  Default is to write to stderr.
+.TP
+.B \-B buf_size
+The size in bytes of the UDP send buffer and receive buffer to use.  Valid values are 65536-104857600 (64KB-100MB).  Defaults to 262144.
+.TP
+.B \-Y keytype
+The symmetric encryption algorithm to use.  All algorithms are used in cipher block chaining (CBC) mode.  Valid values are "des" for DES, "3des" for three key Triple DES, "aes128" for AES-128, "aes256" for AES-256, or "none" to not set up encryption at all.  Default is "none".  Not all installations may support all of these algorithms.
+.TP
+.B \-h hashtype
+The hashing algorithm to use for key derivation and HMAC signatures.  Valid values are "sha1" for SHA-1, and "sha256" for SHA-256.  Defaults to "sha1".  Ignored if -Y is "none".  Not all installations may support all of these algorithms.
+.TP
+.B \-w sigtype
+Specifies the type of signature to be applied to encrypted messages.  Valid values are "hmac" to apply an HMAC to the encrypted message, and "rsa" to apply an RSA signature.  HMAC signatures are based off the group master key and ensure the sender of a message is a valid member of the group, but does not guarantee that the message came from a specific group member.  RSA signatures ensure that messages come from a particular member, but is much much slower to calculate than HMAC and creates a larger per-packet overhead.  Default is "hmac".  Ignored if -Y is "none".
+.TP
+.B \-c
+If specified, forces clients to authenticate by sending their RSA public key in a CLIENT_KEY message.  Client key fingerprints and proxy key fingerprints specified by -H and -j respectively will NOT be checked unless -c is specified.  Ignored if -Y is "none".
+.TP
+.B \-k key_file
+.TP
+.B \-K new_key_length
+These two options are used to read and/or write the server\(aqs RSA private key.  Both are ignored if -Y is "none".
+
+If neither -k nor -K are specified, an RSA private key 512 bytes in length is generated.
+
+If -k is specified but not -K, the RSA private key is read from key_file.
+
+If -k is not specified but -K is, an RSA private key new_key_length bytes in length is generated.
+
+If both -k and -K are specified, an RSA private key new_key_length bytes in length is generated and stored in key_file.
+
+The definition of key_file is dependent on the crypto library UFTP is compiled to use.
+
+On Windows systems using the native crypto library (CryptoAPI), all RSA private keys must be stored in a key container (technically only keys used to sign data, but for UFTP\(aqs purposes this is the case).  Key containers are internal to Windows, and each user (and the system) has its own set of key containers.  In this case, key_file is actually the name of the key container.  When -k is not specified, the generated key is stored in a default key container.  Note that if more than one server, client, and/or proxy use this default key container on the same machine, they will interfere with each other and the results are undefined.
+
+All other systems use OpenSSL for the crypto library (although under Windows UFTP can be also be built to use it).  In this case, key_file specifies a file name where the RSA private key is stored unencrypted in PEM format (the OS is expected to protect this file).  When both -k and -K are specified, the file is only written to if it does not currently exist.  If the file does exist, an error message will be returned and the server will exit.  When -k is not specified, the generated key is not persisted.  Unlike CryptoAPI, servers, clients, and proxies will not step on each other in this case.  These PEM files may also be manipulated via the openssl(1) command line tool.
+
+Keys can also be generated and viewed via the uftp_keymgt(1) utility.
+.TP
+.B \-l
+Follow symbolic links.  By default, if the server encounters a symbolic link, it will send the link itself instead of the file it points to.  Specifying this flag causes the server to send the file the link points to.
+.TP
+.B \-T
+Print the timestamp on each line of output.  If -L is specified, this option is implied.
+.TP
+.B \-A announce_time
+The maximum time in seconds that the server and client will spend in the Announce/Register phase or the File Info phase for each file.  Under open group membership, the server will always wait for this length of time during the Announce/Register phase to allow as many clients as possible to register.  Valid values are 1-240.  Default is 10 seconds.
+.TP
+.B \-S status_time
+The maximum time in seconds that the server will wait for a client to respond to a DONE message before declaring the client dropped.  Also the maximum time a client will wait for the server to send a DONE_CONF in response to a COMPLETE at the end of a session.  Valid values are 1-240.  Default is 12 seconds.
+.TP
+.B \-a announce_interval
+The time in milliseconds that the server will idle waiting for REGISTER/CLIENT_KEY or INFO_ACK messages before resending an ANNOUNCE, REG_CONF, KEYINFO, or FILEINFO.  Valid values are 500-20000.  Defaults to 2500 milliseconds.
+.TP
+.B \-s status_interval
+The time in milliseconds that the server will idle waiting for STATUS or COMPLETE messages before resending a DONE or DONE_CONF.  Valid values are 500-20000.  Defaults to 4000 milliseconds.
+.TP
+.B \-r register_interval
+The time in milliseconds that a client will idle waiting for a REG_CONF or KEYINFO before resending a REGISTER.  Valid values are 500-60000, and must be greater than announce_interval.  Defaults to 4000 milliseconds.
+
+The value specified for register_interval compared to announce_interval depends on network conditions and the number of expected clients.  Under high latency or with a large number (100s) of clients, it may take longer for a server to respond.  If register_interval is too low, clients could end up retransmitting more often than necessary and overwhelm the server.
+.TP
+.B \-d done_interval
+The time in milliseconds that a client will idle waiting for a DONE_CONF before resending a COMPLETE.  Valid values are 500-60000, and must be greater than status_interval.  Defaults to 4000 milliseconds.
+
+The value specified for done_interval compared to status_interval depends on network conditions and the number of expected clients.  Under high latency or with a large number (100s) of clients, it may take longer for a server to respond.  If done_interval is too low, clients could end up retransmitting more often than necessary and overwhelm the server.
+.TP
+.B \-b mtu
+Specifies the expected path MTU.  The UFTP packet will be packed to fit into this size.  Note that this also includes the IP and UDP headers, and assumes that no IP header options are present.  If IP options are present, this value should be lowered slightly to prevent fragmenting IP datagrams.  Default is 1500, which is the maximum MTU for 100Mbps Ethernet.
+.TP
+.B \-t ttl
+Specifies the time-to-live for multicast packets.  Default is 1.
+.TP
+.B \-Q dscp
+Specifies the Differentiated Services Code Point (DSCP), formerly Type of Service (TOS), in the IP header for all outgoing packets.  Valid values are 0-63 and may be specified in either decimal or hexadecimal.  Default is 0.
+
+On Windows XP systems, the OS doesn\(aqt allow this parameter to be changed by default.  To change this, add/modify the following DWORD registry value, set to 0, and reboot:
+
+HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\DisableUserTOSSetting
+
+Not currently supported on Windows Vista or later.
+.TP
+.B \-I interface
+The interface to send the data from.  Can be specified either by interface name, by hostname, or by IP.  If not specified, the default system interface is used.
+.TP
+.B \-p port
+The UDP port number to send from.  Default is 1044.
+.TP
+.B \-j proxylist_file
+A file containing a list of proxies the server is expecting to hear from.  The file should contain the name/IP of a proxy optionally followed by the proxy\(aqs public key fingerprint, with one on each line.  If a key fingerprint is given, the key specified by the proxy must match the fingerprint.  This option should not be used without -H.  If -H is specified, -j must also be specified if proxies are expected to respond, otherwise the server will reject the proxies.
+
+.nf
+Example contents:
+192.168.1.101 66:1E:C9:1D:FC:99:DB:60:B0:1A:F0:8F:CA:F4:28:27:A6:BE:94:BC
+192.168.1.201
+.fi
+.TP
+.B \-q
+Quit-on-error flag.  Normally, the server will continue with a session as long as at least one client is still active.  With this flag, the server will quit if any client aborts, drops out, or never responds.  Most useful in conjuction with clients using the temp directory option (-T) so that clients that successfully receive at least one file before being told to abort don\(aqt have files from an aborted session in the destination directory.
+.TP
+.B \-f
+Restartable flag.  If specified, and at least one client fails to receive all files, the server will write a restart file named "_group_{group ID}_restart in the current directory to save the current state, which includes the group ID, list of files, and list of failed clients.  This file can then be passed to -F to restart the failed transfer.
+.TP
+.B \-y
+For Windows systems using CryptoAPI, private keys are normally stored in the key container of the running user.  Specifying this option stores keys in the system key container.  On non-Windows systems, this option has no effect.
+.TP
+.B \-H { host[,host...] | @hostlist_file }
+Specifies the clients for closed group membership.  Can be specified as either a comma separated list of names/addresses, or can be read from hostlist_file.  This file is in the same format as proxylist_file.  Note that key fingerprints cannot be specified using the comma separated syntax.  Clients that are behind a proxy do not need key fingerprints specified, since the proxy\(aqs key fingerprint will be checked instead.  If unspecified, open group membership is used, and any client may register.
+
+Besides name/IP, clients may also be specified by unique ID.  This ID may be specified either as a 6 digit hexadecimal number (0xnnnnnn) or as an IP address of the form 0.n.n.n.
+.TP
+.B \-F restart_file
+Specifies the name of a restart file to use to resume a failed transfer.  If specified, -H may not be specified and all files listed to send will be ignored, since the restart file contains both of these.  All other command line options specified on the first attempt are not automatically applied, so you can alter then for the next attempt if need be.
+.TP
+.B \-X exclude_file
+A file containing the names of files/paths to be excluded from the session, one per line.  For example, if you send a directory called d1 containing subdirectories d2, d3, and d4, and you don\(aqt want to send the contents of d4, the exclude_file should contain a line reading "d1/d4".
+.TP
+.B \-M pub_multicast_addr
+The public multicast address to announce on.  Default is 230.4.4.1.
+.TP
+.B \-P priv_multicast_addr
+The private multicast address that the data is transferred to.  Any combination of the second, third, and fourth octets may be replaced with the letter \(aqx\(aq, resulting in a random number being chosen for that octet.  Default value is 230.5.5.x.  If clients are using source specific multicast (SSM), this and -M must specify valid SSM addresses, which fall in the range 232.0.0.0-232.255.255.255.
+.TP
+.B \-D dest_name
+The name given to the sent file(s) on the client side.  If only one file/directory is specified to send, this name is given to that file/directory.  If more than one file/directory is specified to send, they are placed in a subdirectory with this name.
+.TP
+.B \-i list_file
+Name of a file containing a list of files to send, one per line.  Empty lines are ignored.  Passing in \(aq-\(aq for list_file reads files from stdin.  Other files specified on the command line are ignored if -i is given.
+.TP
+.B file [ file...]
+The file(s) or directory(ies) to send.  Any special files (block/character devices, pipes, sockets, etc.) are skipped.  By default, any symbolic links are sent as links (see -l).  Any Windows client will silently refuse to create them.  If -F or -i is specified, any files listed will be ignored.
+.SH EXAMPLES
+.P
+Starting with the default options:
+
+.RS 5
+uftp the_file
+.RE
+
+The server sends the_file with no encryption at 1000 Kbps, sending announcements over 230.4.4.1 and later messages over 230.5.5.x (x is randomly selected).  Any client that responds to the announcement will be accepted.  The default delays and timeouts should be OK for sending over satellite with a small number of receivers.  Packets (including IP and UDP) will be 1500 bytes.
+
+If you were sending a file over a local LAN instead of satellite, you might call the server like this:
+
+.RS 5
+uftp -R 50000 -A 3 -S 3 -a 500 -s 500 -r 1000 -d 1000 the_file
+.RE
+
+This shortens the timeouts for each message type and cuts down the time the server waits during each phase, and sends the file at 50000 Kbps (~50 Mbps).
+
+If you have a large number of clients you might need to specify larger values for -A and -S to ensure the server has time to handle them all.  As a general rule, if you need to specify any one of -A, -S, -a, -s, -r, or -d, it\(aqs probably a good idea to specify them all.
+
+To send multiple files:
+
+.RS 5
+uftp file_1 file_2 file_3
+.RE
+
+or:
+
+.RS 5
+uftp dir_1 dir_2 file_3
+.RE
+
+To send multiple files that all land in a certain subdirectory on each client:
+
+.RS 5
+uftp -D dest_dir file_1 file_2
+.RE
+
+To send announcements over multicast address 224.1.2.3 and later messages over 224.4.5.6:
+
+.RS 5
+uftp -M 224.1.2.3 -P 224.4.5.6 file
+.RE
+
+To send only to certain hosts:
+
+.RS 5
+uftp -H host_name_1,host_ip_2,host_name_3 file_to_send
+.RE
+
+or:
+
+.RS 5
+uftp -H @file_containing_list_of_hosts file_to_send
+.RE
+
+If you want to use jumbo ethernet frames of 8800 bytes:
+
+.RS 5
+uftp -b 8800 file_to_send
+.RE
+
+To send a file encrypted with AES-256 and SHA-1 hashing, using an autogenerated 512-bit RSA key to negotiate the session:
+
+.RS 5
+uftp -Y AES256 -h SHA1 file_to_send
+.RE
+
+To do the above with a previously generated RSA key stored in key_file_or_container (under Windows, the name of an internal key container, otherwise the name of a file containing the key in PEM format):
+
+.RS 5
+uftp -Y AES256 -h SHA1 -k key_file_or_container file_to_send
+.RE
+.SH SEE ALSO
+uftpd(1), uftpproxyd(1), uftp_keymgt(1)
+.SH NOTES
+.P
+The latest version of UFTP can be found at http://www.tcnj.edu/~bush/uftp.html.  UFTP is covered by the GNU General Public License.  Commercial licenses and support are available from Dennis Bush (bush@tcnj.edu).

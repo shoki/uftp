@@ -1,0 +1,367 @@
+Version 3.4.3 - 4/23/2011
+  Under Windows, allow use of the system key container for private keys.
+    See -y on the server, and -m on the client and proxy for more details.
+  Previously, when a client registered with a server in open group membership
+    mode, it responded using the IP of the first network interface, which is
+    not necessarily the interface the ANNOUNCE was received on.  The client
+    now responds with a blank IP, telling the server/proxy to use the source
+    IP of the incoming packet as the client's IP.
+  Enabled NO_ENCRYPTION compile flag on Windows.
+
+Version 3.4.2 - 3/29/2011
+  Fixed error when passing "-Y none" to the server
+  The pidfile option (-P) for the client and proxy didn't work under
+    Windows.  It does now.
+  Improved internal error checking.
+
+Version 3.4.1 - 2/21/2011
+  Fixed crash in Windows when receiving an empty file
+  Extended the late register and late done timers to 1.5 times the old values.
+    This gives clients a little extra time to send responses.
+  Clients now send a COMPLETE in response to a FILEINFO for a directory or
+    a symbolic link, elimitating an extra DONE/COMPLETE cycle.
+  Clients may now accept a FILEINFO in lieu of a REG_CONF.  This eliminates
+    a timing issue when a REG_CONF gets lost.
+
+Version 3.4 - 12/18/2010
+  Added new proxy mode: response proxy
+    Used when servers have direct multicast accessability to clients, but
+      response aggregation is still desired.
+  Fixed overflow bug when calculating packet rate with jumbo frames.
+  Fixed server bug when checking maximum size of file exclusion list.
+  Fixed bug in BSD systems where setting of DSCP/TOS value failed.
+  Updated documentation regarding Windows support for DSCP/TOS.
+
+Version 3.3.3 - 11/26/2010
+  Added -Q option to server, client, and proxy to specify the DSCP
+    (formerly TOS) in the IP header for all outgoing packets.
+  Increased max announce time and status time from 10000 to 20000 ms.
+
+Version 3.3.2 - 10/13/2010
+  Added DESTDIR option to makefile to allow installs in fake root directories.
+  Fixed overflow bug with session longer than 30 minutes.
+  Added examples to man pages
+
+Version 3.3.1 - 7/18/2010
+  Added -i option to server to take list of file to send.
+  Added -T option to server to always print timestamps.
+  Fixed bug introduced in 3.3 where a single dropped REG_CONF
+    results in a client not being able to register.
+  Added makefile support for Darwin/OSX.
+  Improved error handling.
+
+Version 3.3 - 7/8/2010
+  Added ability to restart failed file transfers (see server -f and -F).
+  Removed timeout option from proxy (-o) and client (-t)
+    The server specified status_time is used instead.
+  Allow proxies to keep track of multiple pending messages at once.
+  Added makefile flags to compile without encryption support.
+  Fixed handling of snprintf return codes under Windows.
+  Have proxies foward ABORTs after local handling.
+
+Version 3.2.1 - 6/16/2010
+  Under Windows, setting the root directory of a drive (c:\, d:\, etc.) as
+    the destination directory caused errors.  Fixed.
+  When trying to send unicast to a client beind a NAT, the client would
+    reject the transfer because the IP specified by the server doesn't
+    match the client's IP.  Clients will now always accept in unicast mode.
+
+Version 3.2 - 5/30/2010
+  Fixed compile bug on OSX (cleaned up signal setup)
+  Added detection of non-multicast interfaces
+  Added unique ID to clients and proxies.  This allows for distinguising
+    clients between different NATs that might have the same IP address.
+
+Version 3.1 - 4/6/2010
+  Added ability to send empty directories and symbolic links
+    Added -l option to server to follow / not follow links
+  Added -D option to server to specify destination file name
+  Fixed client bug when receiving a file with the same name as an
+    existing directory and vice versa
+
+Version 3.0 - 3/11/2010
+  Added SSL derived encryption.
+    Uses RSA for host authentication and key exchange.
+    Uses DES, Triple DES, AES-128, and AES-256 for data encryption.
+  Ability to send multiple files or full directories at once.
+  Clients may be listed in a file instead of the server command line.
+  Added proxy daemon which allows:
+    NAT traversal
+    Aggregation of client responses
+    Multicast tunneling
+  Support for variable packet sizes.
+  Removed latency levels in favor of more fine grained control.
+  Support for source specific multicast.
+  Protocol heavily altered to support new features.
+  Code completely restructured and reformatted for ease of updates and support.
+
+Version 2.10.3 - 1/21/2010
+  Fixed ttl bug under Solaris where no value was valid
+  Cleaned up handling of server timeout so an extra DONE request isn't sent
+  Changed Windows sockets error messages to use proper system message strings
+
+Version 2.10.2 - 11/3/2009
+  The change in 2.10.1 that fixed the NAK issue caused a crash when sending
+    or receiving empty files.  This has been fixed.
+  When specifying the list of interfaces for the client to listen on, if the
+    interfaces are listed by name only the first was used.  Bug fixed.
+  Cleaned up more warnings on Windows
+
+Version 2.10.1 - 8/20/2009
+  Fix for last packet wait bug, introduced in 2.3
+  Fix for NAKs with block counts a multiple of the section size
+  Fixed ttl bug - now uses actual number instead of ascii value of the
+    number.  This also results in the default ttl changing from 49 to
+    the intended value of 1, so this may have an effect on existing apps.
+    Thanks to Luc Tanguay for finding these bugs
+  Cleaned up some warnings on Windows
+
+Version 2.10 - 7/16/2009
+  Added -B option to client and server to set UDP receive buffer size.
+    Defaults to the old hardcoded value of 256K.
+  Added -z option to server, which tells clients to make responses as
+    small as possible.  This minimizes backtraffic when you have a
+    large number of receivers.
+  Adjusted timeouts to work together better.
+  Server now exits if invalid hosts are specified.
+  Fixed some minor logging bugs.
+
+Version 2.9.2 - 6/20/2009
+  Getting the list of network interfaces is no longer manditory.  If
+    there's a problem getting the list, and you don't pass -I to the
+    client, it just uses the clients hostname interface as before
+  Fixed bounds checking on the server's -R and -c options, and 
+    increased the maximum valid value for -c to 60000 (60 seconds).
+  Fixes to run properly under FreeBSD, including:
+    Use signal(2) instead of sigset(2) for signal processing
+    Use getifaddrs to get list of network interfaces
+    Try a smaller value for the receive buffer if the first fails
+
+Version 2.9.1 - 6/13/2009
+  Allow the full 10000 receivers for closed group membership as well as
+    open.  Multiple ANNOUNCE message are now sent to accomidate the
+    longer lists.
+  Minor modifications to compile under OpenVMS.
+  Fallback to listening on the client's hostname interface if interface
+    list contains no active non-loopback interfaces.
+  Got rid of debug message on startup on Windows boxes.
+
+Version 2.9 - 6/8/2009
+  After numerous complaints from Linux users, the uftpd client now listens
+    for multicast traffic on all non-loopback interfaces by default.  You
+    can still restrict the interfaces using the -I option.
+  The -I option for both the client and server will take interface names
+    (ex. eth0, bge1, etc.) as well as hostnames or IPs.
+  Broke out implementations in header files into separate source files
+  Commoned up all UNIX-like makefiles
+
+Version 2.8.1 - 5/18/2009
+  Pidfile option to uftpd wasn't optional as documented.  It is now.
+  Fixed bug in reporting of total time.  Was previously looking for newest
+    end timestamp among all receivers, now only checking completed ones.
+
+Version 2.8 - 4/26/2009
+  Functionality change: Instead of the server sending a REG_CONF separately
+    to each client, it sends one listing up to 300 clients, and more if
+    required.  These are sent out before each subsequent ANNOUNCE and, in
+    closed group mode, after receiving REGISTERS from all clients.  The
+    handling of DONE_CONF messages also changed to work in a similar manner.
+    As a result, the client side timeouts were increased to handle this.
+  Added -c option to uftp to explicitly set client timeouts in milliseconds
+    for both REG_CONF and DONE_CONF.  Useful for when the server expects
+    to hear from a large number (>100) of receivers over a low speed link,
+    meaning it could take the server several seconds to process them all.
+    If this value is less than the time for the specified latency level,
+    it is ignored.
+
+Version 2.7.1 - 3/31/2009
+  Added -P option to uftpd to write the daemon's pid to a pidfile.
+  Added latency level 4 with values 2x that of level 3.
+  Fixed bug when sending DONE to over 300 clients.
+  Brought man pages up to date.
+  Changed license to GPLv3.
+
+Version 2.7 - 2/26/2009
+  Added -n option to uftp to prevent name lookups of clients (a similar
+    option exists in uftpd).  This happens for both open group membership,
+    when clients register, and for closed group membership, when names are
+    specified on the command line via -H.  For the latter to take effect, -n
+    must appear before -H on the command line.
+  Changed name of wait variable in uftp to get around conflict on OSX/BSD,
+    and added OSX/BSD makefile.  Thanks to Jusin Venus for supplying these.
+
+Version 2.6.6 - 1/16/2009
+  Fixed logging output to display correctly on 64 bit systems
+
+Version 2.6.5 - 12/18/2008
+  Cleaned up a few more warnings
+
+Version 2.6.4 - 12/16/2008
+  Cleaned up some warnings, added -Wall to linux makefile
+
+Version 2.6.3 - 7/29/2008
+  Fixed the basename function for Windows, and made a proper makefile
+    for Windows.  Thanks to Amol Deshpande for providing these.
+  Removed the call to basename from uftpd, since it has no effect.
+
+Version 2.6.2 - 7/28/2008
+  Cleaned up the code a bit so file names/paths have a consistent size,
+    fixed bounds checking on several buffers
+  In-code max of 10000 receivers for open group membership, 100 for closed
+
+Version 2.6.1 - 6/11/2007
+  Fixed wait bug in uftp
+
+Version 2.6 - 2/25/2007
+  Changed all "short", "long", and "long long" types to the
+    appropriate fixed size types (16, 32, and 64, respectively) for
+    better compatibility between 32 bit and 64 bit environments.
+  Man pages added for Unix/Linux systems.
+  The -I option to uftpd is now optional.  It defaults to the
+    interface assciated with the client's hostname.
+
+Version 2.5.3 - 10/27/2006
+  In version 2.5.1, a fix was applied to uftpd to only close a file 
+    if it was still open.  But apparently, the old line of code 
+    that closes it outright wasn't removed (doh!).  It's gone now.
+
+Version 2.5.2 - 10/26/2006
+  Bug fixes in uftpd - the -n option was actually causing the opposite
+    of the intended effect, and forgot to check for a null value from
+    gethostbyaddr when looking up the sender's name.
+
+Version 2.5.1 - 9/25/2006
+  Fix in uftpd - don't close file if already closed.  On most OS's, 
+    this isn't an issue, but under MS Visual Studio it caused a crash.
+    Thanks to Mark Leavy for catching this one.
+  Made a similar fix in uftp.  Actually, the file was never formally
+    closed.  It is now.
+
+Version 2.5 - 9/20/2006
+  Allowed the -I option to uftpd to take multiple parameters separated
+    by commas.  This allows you to listen for multicast traffic on
+    multiple interfaces, and also allows you to receive data on one 
+    interface and send responses back on another.
+
+Version 2.4 - 9/16/2006
+  Added -L option to uftp to allow output to go to a log file.  The
+    default is to write to stderr.
+  Modified all error routines in uftp to use logfunc.  This is how
+    error logging is currently done in uftpd.
+
+Version 2.3.1 - 7/25/2006
+  Fixed to allow zero length files to be transferred.
+
+Version 2.3 - 7/16/2006
+  Fixed handling of large files in Windows
+  Added descriptive error messages for Windows socket errors
+  Functionality change: uftpd now runs in a single thread.  This not
+    only resulted in a speed increase on most systems, but also gets
+    back the functionality of receiving multiple files at once in unicast
+    mode, which was lost in version 1.3.  It is also no longer necessary
+    to have multiple sockets open on the same port, which caused an
+    issue where multiple instances could be running on the same port.
+    The code for uftpd was also restructured as a result, becoming
+    more modular.
+  Removed -s option from uftpd, since the conditions necessitating this
+    option no longer exist.
+
+Version 2.2 - 7/7/2006
+  Added -n flag to uftpd prevent name lookups of transmitter.  This can
+    eliminate issues with slow name lookups delaying registration.
+
+Version 2.1.1 - 7/5/2006
+  Fixed handling of -H option to uftp
+
+Version 2.1 - 6/22/2006
+  Made a few fixes specific to Linux machines:
+  When calling select(3c) with a timeout, save off a copy of the timeout
+    variable and reset it just before calling select.  This gets around
+    Linux-specific behavior which modifies the timeout parameter after
+    the call to indicate the amount of time left to wait.
+  Added a -s option to uftpd.  Apparently, when multiple UDP sockets are 
+    open on the same port in Linux, any packet arriving on this port gets 
+    passed to ALL open sockets, regardless of whether or not the multicast 
+    destination of the packet matches one of the multicast addresses the 
+    socket is bound to.  This causes a slew of "invalid txID" or "invalid
+    function: ANNOUNCE" messages that otherwise shouldn't show up.  The -s
+    option will suppress these messages.  NOTE: This option should ONLY be
+    used on Linux boxes (or other UNIX-like OS's that exibit this behavior),
+    as it could hide a real problem.  Windows and Solaris uses should NOT
+    use this option.
+
+Version 2.0 - 5/4/2006
+  UFTP now runs under Windows!  It will compile under both Visual C++ 6.0 
+    and Visual Studio .NET, and run on Windows 2000/XP.  No MFC or .NET 
+    functionality was employed, only straight WIN32 calls.  A few major 
+    changes under the hood made it possible to have one version of the 
+    code that compiles in both enivronments:
+  The receiver, uftpd, now uses multiple threads instead of multiple
+    processes.  This was made necessary because Windows doesn't support
+    the UNIX fork function, which makes an exact copy of the calling process.
+  The logging functions in uftpd had to be modified to allow for a common
+    interface for UNIX and Windows boxes.  
+  Changed timing routines in uftp.  Previously, the gettimeofday function was
+    used to get microsecond resolution timestamps.  Since Windows doesn't have
+    this function, calls to this function in addition to calculations of 
+    timestamp differences were hidden away behind #defines, so that UNIX boxes
+    still call gettimeofday, and Windows boxes use QueryPerformanceCounter.
+  Several other functions, including perror, usleep, link, were abstracted 
+    behind #defines to allow for a common interface for UNIX and Windows.
+    The Windows Sleep function only has millisecond timing, however it still
+    allows for proper wait times between packet transmissions.
+  Wrote my own versions of getopt and basename, since they don't exist in 
+    Windows.  When compliled for UNIX, the built in OS functions are used.
+  Currently, the Windows version of uftpd does not put itself in the 
+    background.  A Command Prompt window will remain open, even without the 
+    -d option.  This was a consequence of using main instead of WinMain for 
+    the entry point to keep it consistent with UNIX.  This can be worked 
+    around by calling uftpd with hidedos.exe, which is a utility program 
+    created by LanDesk.  This utility can be found freely on several LanDesk 
+    related forums.
+
+Version 1.4.2 - 1/24/2006
+  Bug fix - missing htons() call when assigning port in uftpd. Not a big deal
+    for big-endian machines, BAD for little-endian machines.
+
+Version 1.4.1 - 1/15/2006
+  Added a few missing header files
+
+Version 1.4 - 11/16/2005
+  Added support for large (>2GB) files
+  On second and subsequent passes, status requests are not sent for a 
+    particular section if there were no NAKs for that section.  A status
+    request is always sent for the last section, however.
+
+Version 1.3 - 9/25/2005
+  Add -l flag to uftp to set a predefined latency level 1-3 
+    (1=low, 2=medium, 3=high (default))
+    In prior versions, during the initial handshaking and when requesting
+    NAK counts, the transmitter would wait 2 and 4 seconds respectively 
+    before resending a request.  This is fine for a high latency link 
+    (satellite, WAN) but not a low latency link (local LAN).  This setting
+    allows for shorter waits to handle a variety of network latencies. 
+    This flag should be omitted for backward compatibility 
+  Functionality change: The parent uftpd process no longer forwards data
+    to its children.  The children now receive the data directly from the
+    transmitter.  This greatly improves high end throughput.  However, doing
+    so relies on a multicast feature (allowing multiple UDP sockets to listen
+    on the same port) that doesn't work in unicast.  Therefore, in order
+    to retain the ability to receive files via unicast, uftpd cannot receive
+    files via unicast and multicast at the same time.  When a request
+    for a unicast transfer is received, it is accepted only if no other
+    files are being received.  The parent uftpd then handles the file 
+    directly and will not accept any other files until it is done.
+
+Version 1.2 - 9/14/2005
+  Improved error handling
+  Improved cross-platform compatibility
+
+Version 1.1 - 8/15/2005
+  All integers in UFTP header converted to network byte order before
+    sending, and converted back upon receiving, allowing machines with 
+    different hardware architechtures to communicate
+  Minor performance enhancements
+
+Version 1.0 
+  Initial Release
