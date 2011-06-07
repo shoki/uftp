@@ -42,7 +42,7 @@ endif
 CC = gcc
 OPTIONS=-g -Wall $(ENC_OPTS)
 LDLIBS=-lc -lm $(CRYPT_LIB)
-CFLAGS=
+CFLAGS+=
 
 # FreeBSD
 ifeq ("FreeBSD", "$(UNAME_S)")
@@ -67,7 +67,7 @@ endif
 ifeq ("Linux", "$(UNAME_S)")
 OPTIONS=-g -Wall -DHAS_GETIFADDRS $(ENC_OPTS)
 LDLIBS=-lm $(CRYPT_LIB)
-CFLAGS=`getconf LFS_CFLAGS`
+CFLAGS+=`getconf LFS_CFLAGS`
 endif
 
 ifdef OPENSSL
